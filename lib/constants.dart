@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-const Color backgroundColor = Color.fromARGB(255, 31, 29, 50);
+const Color backgroundColor = Color.fromARGB(255, 17, 15, 28);
 
-const Color foregroundColor = Color.fromARGB(255, 68, 64, 103);
+const Color foregroundColor = Color.fromARGB(255, 38, 36, 55);
 
 const Color brightColor = Color.fromARGB(255, 87, 76, 190);
 
@@ -47,8 +47,7 @@ extension ColorBrightness on Color {
     assert(amount >= 0 && amount <= 1);
 
     final hsl = HSLColor.fromColor(this);
-    final hslLight =
-        hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0));
+    final hslLight = hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0));
 
     return hslLight.toColor();
   }
@@ -83,9 +82,7 @@ class _NiceButtonState extends State<NiceButton> {
           padding: EdgeInsets.only(bottom: _paddingBottom),
           duration: const Duration(milliseconds: 100),
           decoration: BoxDecoration(
-            color: widget.active
-                ? widget.color.darken()
-                : widget.inactiveColor.darken(),
+            color: widget.active ? widget.color.darken() : widget.inactiveColor.darken(),
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
           child: Container(
