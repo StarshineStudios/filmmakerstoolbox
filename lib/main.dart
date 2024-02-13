@@ -89,10 +89,7 @@ class _FilmmakersToolboxScreenState extends State<FilmmakersToolboxScreen> {
           title: 'LIGHTS',
           child: TwinDropdown(
             roundImage1: RoundLabelledImage(title: 'SCREEN', imagePath: 'assets/appIcon.png'),
-            dropdownContents1: Text(
-              'test1',
-              style: TextStyle(color: Colors.white),
-            ),
+            dropdownContents1: ScreenLightMenu(),
             roundImage2: RoundLabelledImage(title: 'FLASH', imagePath: 'assets/appIcon.png'),
             dropdownContents2: Text(
               'test2',
@@ -147,7 +144,7 @@ class Section extends StatelessWidget {
       padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: foregroundColor),
-        child: Column(children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
           SizedBox(
             height: 10,
           ),
@@ -300,5 +297,353 @@ class _TwinDropdownState extends State<TwinDropdown> {
           ),
       ],
     );
+  }
+}
+
+class ScreenLightMenu extends StatefulWidget {
+  const ScreenLightMenu({Key? key}) : super(key: key);
+
+  @override
+  State<ScreenLightMenu> createState() => _ScreenLightMenuState();
+}
+
+class _ScreenLightMenuState extends State<ScreenLightMenu> {
+  List<Color> colors = []; // Dynamic list to track added colors
+  String selectedEffect = 'None';
+  final Map<String, String> effectDescriptions = {
+    'None': 'Color will not change. Note that only the first color will be displayed!',
+    'Cycle': 'Color will smoothly fade from one to the next.',
+    'Instant': 'Color will instantaneously change from one to the next.',
+    'Gradient': 'Color will transition from one to the next through a gradient.',
+    'Strobe': 'Color will turn black before instantaneously changing to the next.',
+  };
+  double _currentTimingInSeconds = 1.0; // Default starting timing in seconds
+  double _maxSliderValue = 1000000; // Max slider value in microseconds
+  final TextEditingController _timingController = TextEditingController(text: "1.0");
+
+  double red = 0, green = 0, blue = 0; // Initial RGB values
+  void _addNewColor() async {
+    // Reset RGB sliders
+    double localRed = 0, localGreen = 0, localBlue = 0;
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select a Color'),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return SingleChildScrollView(
+                child: Column(
+                  children: <Widget>[
+                    Container(
+                      width: 100,
+                      height: 100,
+                      color: Color.fromRGBO(localRed.toInt(), localGreen.toInt(), localBlue.toInt(), 1),
+                    ),
+                    Slider(
+                      value: localRed,
+                      min: 0,
+                      max: 255,
+                      onChanged: (value) {
+                        setState(() {
+                          localRed = value;
+                        });
+                      },
+                    ),
+                    Slider(
+                      value: localGreen,
+                      min: 0,
+                      max: 255,
+                      onChanged: (value) {
+                        setState(() {
+                          localGreen = value;
+                        });
+                      },
+                    ),
+                    Slider(
+                      value: localBlue,
+                      min: 0,
+                      max: 255,
+                      onChanged: (value) {
+                        setState(() {
+                          localBlue = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  colors.add(Color.fromRGBO(localRed.toInt(), localGreen.toInt(), localBlue.toInt(), 1));
+                });
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Colors',
+              style: Theme.of(context).textTheme.headline6,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: ElevatedButton.icon(
+              onPressed: _addNewColor,
+              icon: const Icon(Icons.add),
+              label: const Text("Add new Color"),
+              style: ElevatedButton.styleFrom(
+                primary: Theme.of(context).primaryColor, // Updated to use theme color
+              ),
+            ),
+          ),
+          Wrap(
+            children: colors
+                .map((color) => Container(
+                      width: 50,
+                      height: 50,
+                      color: color,
+                      margin: const EdgeInsets.all(2),
+                    ))
+                .toList(),
+          ),
+          Text(
+            'Choose Effect',
+            style: TextStyle(color: Colors.white),
+          ),
+          DropdownButton<String>(
+            dropdownColor: Colors.grey,
+            value: selectedEffect,
+            onChanged: (String? newValue) {
+              setState(() {
+                selectedEffect = newValue!;
+              });
+            },
+            items: effectDescriptions.keys.map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(
+                  value,
+                  style: TextStyle(color: Colors.white),
+                ),
+              );
+            }).toList(),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              effectDescriptions[selectedEffect] ?? '',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+
+          //TIMING
+          Padding(
+            padding: const EdgeInsets.only(top: 20.0),
+            child: Text(
+              'Choose timing in seconds',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          Slider(
+            min: 1,
+            max: _maxSliderValue,
+            divisions: 1000000, // Optional: Adjust based on desired granularity
+            value: _currentTimingInSeconds * 1000000, // Convert seconds to microseconds for the slider
+            onChanged: (value) {
+              setState(() {
+                _currentTimingInSeconds = value / 1000000; // Convert back to seconds
+                _timingController.text = _currentTimingInSeconds.toStringAsFixed(2); // Update the text field
+              });
+            },
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _timingController,
+                  decoration: InputDecoration(
+                    labelText: 'Timing (seconds)',
+                    labelStyle: TextStyle(color: Colors.white), // Set label text color to white
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white), // Set border color to white
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white), // Set border color to white when focused
+                    ),
+                    border: OutlineInputBorder(),
+                  ),
+                  style: TextStyle(color: Colors.white), // Set input text color to white
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  onFieldSubmitted: (value) {
+                    double enteredValue = double.tryParse(value) ?? 1.0;
+                    setState(() {
+                      _currentTimingInSeconds = enteredValue;
+                      double newMicroseconds = enteredValue * 1000000;
+                      if (newMicroseconds > _maxSliderValue) {
+                        _maxSliderValue = newMicroseconds;
+                      } else if (_maxSliderValue > 1000000 && newMicroseconds <= 1000000) {
+                        _maxSliderValue = 1000000;
+                      }
+                      _timingController.text = enteredValue.toStringAsFixed(2);
+                    });
+                  },
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: () {
+                  // Optional: Implement if you want an edit icon action
+                },
+              ),
+
+              //START LIGHTS
+
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => LightShowScreen(
+                      colors: colors,
+                      effect: selectedEffect,
+                      timingInSeconds: _currentTimingInSeconds,
+                    ),
+                  ));
+                },
+                child: Text('ACTIVATE LIGHT'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ColorPreview extends StatelessWidget {
+  final double red, green, blue;
+  const ColorPreview({Key? key, required this.red, required this.green, required this.blue}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 100,
+      height: 100,
+      color: Color.fromRGBO(red.toInt(), green.toInt(), blue.toInt(), 1),
+    );
+  }
+}
+
+class LightShowScreen extends StatefulWidget {
+  final List<Color> colors;
+  final String effect;
+  final double timingInSeconds;
+
+  const LightShowScreen({
+    Key? key,
+    required this.colors,
+    required this.effect,
+    required this.timingInSeconds,
+  }) : super(key: key);
+
+  @override
+  State<LightShowScreen> createState() => _LightShowScreenState();
+}
+
+class _LightShowScreenState extends State<LightShowScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Color?> _colorAnimation;
+  int _currentColorIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the AnimationController regardless of the effect
+    _controller = AnimationController(
+      duration: Duration(seconds: widget.timingInSeconds.toInt()),
+      vsync: this,
+    )..addListener(() {
+        setState(() {});
+      });
+
+    if (widget.colors.isNotEmpty) {
+      // Setup color animation for both 'Cycle' and 'None' effects
+      // For 'None', this setup will simply not cycle beyond the first color
+      _setupColorAnimation();
+
+      _controller.forward();
+
+      _controller.addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _currentColorIndex++;
+          if (_currentColorIndex >= widget.colors.length) {
+            _currentColorIndex = 0; // Reset to first color
+          }
+
+          // For 'Instant', we need to manually trigger the change to ensure it's instant
+          if (widget.effect == 'Instant') {
+            setState(() {}); // Force widget to rebuild with the new color
+          }
+
+          _setupColorAnimation();
+          _controller.forward(from: 0.0); // Restart the animation for both 'Cycle' and 'Instant'
+        }
+      });
+    }
+  }
+
+  void _setupColorAnimation() {
+    if (widget.effect == 'Cycle') {
+      int nextColorIndex = _currentColorIndex + 1 < widget.colors.length ? _currentColorIndex + 1 : 0;
+      _colorAnimation = ColorTween(
+        begin: widget.colors[_currentColorIndex],
+        end: widget.colors[nextColorIndex],
+      ).animate(_controller);
+    } else {
+      // For both 'Instant' and 'None', set the color without tweening
+      _colorAnimation = AlwaysStoppedAnimation<Color?>(widget.colors[_currentColorIndex]);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: AnimatedBuilder(
+          animation: _colorAnimation,
+          builder: (context, child) {
+            return Container(
+              color: _colorAnimation.value ?? widget.colors.first,
+              child: Center(
+                child: Text('Tap anywhere to go back', style: TextStyle(color: Colors.white, fontSize: 24)),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
